@@ -13,16 +13,18 @@ TERA is a peer-to-peer network that enables similarity-based content discovery w
 Traditional DHTs have a fundamental limitation: they can only verify exact content identity. TERA introduces a **dual-output hash function** that provides:
 
 1. **H_crypto** - A homomorphic hash supporting O(1) incremental extensions
-2. **H_semantic** - Parameterized kernel-based similarity metrics
+2. **H_semantic** - Universal neural kernels for multi-modal similarity
 
 This enables **integrity-gated semantic search**: nodes can verify that content legitimately extends a root hash while filtering spam based on relevance.
 
 ### Key Properties
 
+- **Universal**: Works with any content type (text, images, code, audio, binary)
 - **Extendable**: Add content to a collection in O(1) time without recomputing the entire hash
 - **Verifiable**: Cryptographically prove that content B extends content A
 - **Spam-resistant**: Invalid extensions are automatically rejected by the network
-- **Parameterized**: Users define their own notion of "similarity" via kernel parameters
+- **Parameterized**: Users define their own notion of "similarity" via runtime kernel parameters
+- **Model-agnostic**: Neural kernels are content-addressed and exchangeable (like codecs)
 
 ## How It Works
 
@@ -37,27 +39,54 @@ Content → (H_crypto, H_semantic) → Similarity search + Verification → Disc
 **Example:**
 
 ```go
-// Publish root content
-root := tera.NewContent([]byte("Initial document"))
-// H_crypto: 0xabc123..., H_semantic: [features...]
+// Extract universal features (works for text, images, code, etc.)
+features, _ := semantic.ExtractFeatures(content, filename)
+// → FeatureVector{Modality: "text", Data: [512]float32, Hash: "..."}
 
-// Extend with new content
-extended := root.Extend([]byte("Additional paragraph"))
-// H_crypto: 0xdef456... (= 0xabc123... + hash("Additional paragraph"))
+// Load a neural kernel by content ID (cached locally like a codec)
+registry := semantic.NewKernelRegistry("~/.tera/kernels")
+kernel, _ := registry.Get("bafyreisemantic...")  // IPLD CID
 
-// Query with custom similarity parameters
-query := tera.Query{
-    Content: []byte("Looking for documents about..."),
-    Params: KernelParams{
-        WeightSemantic: 0.7,
-        WeightLexical:  0.3,
-    },
+// Compute similarity with runtime parameters
+params := semantic.KernelParams{
+    WeightSemantic:   0.7,
+    WeightLexical:    0.3,
+    WeightStructural: 0.1,
+    Threshold:        0.6,
 }
+similarity, _ := kernel.ComputeSimilarity(featuresA, featuresB, params)
+
+// Create extendable content with cryptographic proof
+root := tera.NewContent(features)
+extended := root.Extend(newFeatures)  // O(1) verification
 
 // Network forwards only if:
 // 1. H_crypto verifies (legitimate extension)
-// 2. Similarity exceeds threshold (relevant)
+// 2. Neural kernel similarity exceeds threshold (relevant)
 ```
+
+## Neural Kernels: The Codec Analogy
+
+TERA solves the heterogeneous model problem in distributed systems. In a P2P network, different nodes may use different LLMs (Claude, GPT-4, local models), which produce incompatible embeddings. TERA's solution:
+
+**Content-Addressed Kernels** (like audio/video codecs):
+- Small neural networks (100KB-1MB) for computing similarity
+- Referenced by IPLD CID (e.g., `bafyreisemantic...`)
+- Cached locally, downloaded on-demand
+- Multiple kernels coexist (like having H.264, VP9, AV1)
+
+**Universal Features** (model-agnostic):
+- Fixed-size vectors (512 floats) for all content types
+- Extracted deterministically (no training needed)
+- Text: TF-IDF + n-grams, Images: color/edge histograms, Code: token frequency
+- Lightweight enough to transmit over network
+
+**Runtime Parameters** (high dexterity):
+- Users tune kernel behavior at query time
+- No need to recompute features or retrain models
+- Example: Adjust semantic vs lexical focus per query
+
+This design means nodes can share a "taste" (kernel) without forcing everyone to use the same LLM.
 
 ## Architecture
 
@@ -74,8 +103,13 @@ query := tera.Query{
                   ↓
 ┌──────────────────┬──────────────────────┐
 │ H_crypto         │ H_semantic           │
-│ (Homomorphic)    │ (Kernel-based)       │
+│ (Homomorphic)    │ (Neural Kernels)     │
 │ Integrity ✓      │ Discovery ✓          │
+└──────────────────┴──────────────────────┘
+                  ↓
+┌──────────────────┬──────────────────────┐
+│ Storage Layer    │ Kernel Registry      │
+│ (BadgerDB)       │ (IPLD Cache)         │
 └──────────────────┴──────────────────────┘
                   ↓
 ┌─────────────────────────────────────────┐
@@ -87,7 +121,9 @@ query := tera.Query{
 
 **Phase 1: Primitives** (Complete ✓)
 - [x] Homomorphic hash implementation (`crypto/`)
-- [x] Parameterized kernel functions (`semantic/`)
+- [x] Universal feature extraction (`semantic/features_universal.go`)
+- [x] Native neural kernels (`semantic/neural.go`)
+- [x] IPLD kernel descriptors (`semantic/kernel_model.go`)
 - [x] Gatekeeping logic (`core/`)
 - [x] Working demo (`examples/demo.go`)
 
@@ -97,12 +133,16 @@ query := tera.Query{
 - [x] Basic node implementation
 - [x] CLI tool (`tera-node`)
 
-**Phase 3: Applications** (Next)
+**Phase 3: Storage & Kernels** (In Progress)
+- [x] Extension graph storage (`storage/`)
+- [x] BadgerDB persistence layer
+- [x] Kernel registry with caching
+- [x] Multi-modal feature extraction
 - [ ] Content discovery API
 - [ ] Interest subscription mechanism
-- [ ] IPFS integration for storage
+- [ ] IPFS integration for content
 - [ ] DHT for peer discovery
-- [ ] Persistent storage
+- [ ] Kernel training utilities
 
 ## Quick Start
 
