@@ -116,14 +116,23 @@ func detectModality(content []byte, filename string) string {
 	}
 
 	// Heuristic: if mostly printable ASCII, it's text
+	checkLen := len(content)
+	if checkLen > 1000 {
+		checkLen = 1000
+	}
+	if checkLen == 0 {
+		return "unknown"
+	}
+
 	printable := 0
-	for i := 0; i < len(content) && i < 1000; i++ {
+	for i := 0; i < checkLen; i++ {
 		if content[i] >= 32 && content[i] <= 126 || content[i] == '\n' || content[i] == '\r' || content[i] == '\t' {
 			printable++
 		}
 	}
 
-	if printable > 800 { // 80% printable
+	// Use percentage-based threshold (80% printable)
+	if float64(printable)/float64(checkLen) >= 0.8 {
 		return "text"
 	}
 

@@ -68,7 +68,8 @@ func main() {
 	if *bootstrap != "" {
 		fmt.Printf("Connected to bootstrap: %s\n\n", *bootstrap)
 	} else {
-		fmt.Println("Running as bootstrap node (no peers to connect to)\n")
+		fmt.Println("Running as bootstrap node (no peers to connect to)")
+		fmt.Println()
 	}
 
 	// Handle shutdown

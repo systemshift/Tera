@@ -14,13 +14,14 @@ import (
 )
 
 func main() {
-	fmt.Println("=== TERA Demo: Integrity-Gated Semantic Search ===\n")
+	fmt.Println("=== TERA Demo: Integrity-Gated Semantic Search ===")
+	fmt.Println()
 
 	// 1. Create root content
 	fmt.Println("1. Creating root content about machine learning...")
 	root := core.NewContent([]byte("Machine learning is a branch of artificial intelligence"))
 	fmt.Printf("   Crypto hash: %s\n", root.Crypto.String()[:20]+"...")
-	fmt.Printf("   Top keywords: %v\n\n", root.Semantic.TopKeywords)
+	fmt.Printf("   Modality: %s, Feature dims: %d\n\n", root.Semantic.Modality, root.Semantic.Size)
 
 	// 2. Legitimate extension
 	fmt.Println("2. Legitimately extending with more ML content...")

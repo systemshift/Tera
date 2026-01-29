@@ -30,7 +30,7 @@ func NewContent(data []byte) *Content {
 	return &Content{
 		Data:     data,
 		Crypto:   crypto.HashElement(data),
-		Semantic: semantic.ExtractFeatures(data),
+		Semantic: semantic.ExtractFeaturesSimple(data),
 	}
 }
 
@@ -51,7 +51,7 @@ func (c *Content) Extend(newData []byte) *Content {
 	newCrypto := crypto.Extend(c.Crypto, newData)
 
 	// Extract features from combined content
-	newSemantic := semantic.ExtractFeatures(combinedData)
+	newSemantic := semantic.ExtractFeaturesSimple(combinedData)
 
 	return &Content{
 		Data:     combinedData,
@@ -153,7 +153,7 @@ type Query struct {
 func NewQuery(content []byte, params semantic.KernelParams) *Query {
 	return &Query{
 		Content:  content,
-		Features: semantic.ExtractFeatures(content),
+		Features: semantic.ExtractFeaturesSimple(content),
 		Params:   params,
 	}
 }
